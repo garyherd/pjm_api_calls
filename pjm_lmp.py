@@ -28,6 +28,12 @@ print(response.status_code)
 result_json = response.json()
 print("")
 
+# TODO: implement daylight savings logic
+# Mar: UTC5 - UCT3
+# Mar - Nov: UTC4 = UTC3
+# Nov: UTC4 - UTC4A
+# Nov - Mar: UTC5 - UTC4
+
 UTC_to_PJM = {
     '04': 'H1',
     '05': 'H2',
