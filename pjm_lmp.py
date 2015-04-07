@@ -13,7 +13,8 @@ response = requests.post(url, data=data, headers=headers)
 
 print(response.status_code)
 result_json = response.json()
-print (result_json)
+print(result_json)
+print("")
 
 # Create a table with same headers as the CSV export from the GUI-based DataMiner
 with sqlite3.connect("pjm_lmp.db") as connection:
@@ -33,10 +34,11 @@ with sqlite3.connect("pjm_lmp.db") as connection:
 json_transform = {}
 
 for record in result_json:
+    json_transform['publishDate'] = record['publishDate']
     json_transform['pnodeId'] = record['pnodeId']
-    print(record['pnodeId'], " ", record['priceType'], " ", end="")
+    json_transform['priceType'] = record['priceType']
+
     for price in record['prices']:
-        # print('utchour: ', price['utchour'],end=""),
-        print(price['price'], " ", end=""),
-    print("")
+        json_transform[price['utchour']] = price['price']
+    print(json_transform)
 
