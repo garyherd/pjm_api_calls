@@ -15,7 +15,7 @@ plist2 = pnode_list[51:200]
 plist3 = pnode_list[201:400]
 plist4 = pnode_list[401:]
 
-data = {"startDate": "2014-04-01", "endDate": "2014-04-02", "pnodeList": plist1}
+data = {"startDate": "2011-04-01", "endDate": "2014-04-02", "pnodeList": [5021072]}
 data = json.dumps(data)
 
 url = 'https://dataminer.pjm.com/dataminer/rest/public/api/markets/realtime/lmp/daily'
@@ -33,6 +33,8 @@ print("")
 # Mar - Nov: UTC4 = UTC3
 # Nov: UTC4 - UTC4A
 # Nov - Mar: UTC5 - UTC4
+
+# TODO: create a separate script the puts together the pNode list, and calls this script to call API
 
 UTC_to_PJM = {
     '04': 'H1',
@@ -90,31 +92,31 @@ with sqlite3.connect("pjm_lmp.db") as connection:
                 new_hour = UTC_to_PJM[price['utchour'][11:13]]
                 json_transform[new_hour] = price['price']
             table_data = (json_transform['publishDate'], json_transform['versionNum'], json_transform['pnodeId'],
-                            json_transform['priceType'],
-                            json_transform['H1'],
-                            json_transform['H2'],
-                            json_transform['H3'],
-                            json_transform['H4'],
-                            json_transform['H5'],
-                            json_transform['H6'],
-                            json_transform['H7'],
-                            json_transform['H8'],
-                            json_transform['H9'],
-                            json_transform['H10'],
-                            json_transform['H11'],
-                            json_transform['H12'],
-                            json_transform['H13'],
-                            json_transform['H14'],
-                            json_transform['H15'],
-                            json_transform['H16'],
-                            json_transform['H17'],
-                            json_transform['H18'],
-                            json_transform['H19'],
-                            json_transform['H20'],
-                            json_transform['H21'],
-                            json_transform['H22'],
-                            json_transform['H23'],
-                            json_transform['H24'])
+                          json_transform['priceType'],
+                          json_transform['H1'],
+                          json_transform['H2'],
+                          json_transform['H3'],
+                          json_transform['H4'],
+                          json_transform['H5'],
+                          json_transform['H6'],
+                          json_transform['H7'],
+                          json_transform['H8'],
+                          json_transform['H9'],
+                          json_transform['H10'],
+                          json_transform['H11'],
+                          json_transform['H12'],
+                          json_transform['H13'],
+                          json_transform['H14'],
+                          json_transform['H15'],
+                          json_transform['H16'],
+                          json_transform['H17'],
+                          json_transform['H18'],
+                          json_transform['H19'],
+                          json_transform['H20'],
+                          json_transform['H21'],
+                          json_transform['H22'],
+                          json_transform['H23'],
+                          json_transform['H24'])
 
             c.execute("""INSERT INTO LMP (PublishDate, Version, PnodeID, PricingType,
                                             H1, H2, H3, H4,
@@ -131,4 +133,3 @@ with sqlite3.connect("pjm_lmp.db") as connection:
                                                     ?, ?, ?, ?,
                                                     ?, ?, ?, ?,
                                                     ?, ?, ?, ?)""", table_data)
-
