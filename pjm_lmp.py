@@ -2,6 +2,7 @@ import json
 import requests
 import sqlite3
 import csv
+import date_helpers
 
 pnode_list = []
 
@@ -11,11 +12,21 @@ with open("AEP_pnode_list.csv", "r") as fh:
         pnode_list.append(int(row[0]))
 
 plist1 = pnode_list[0:50]
-plist2 = pnode_list[51:200]
-plist3 = pnode_list[201:400]
-plist4 = pnode_list[401:]
+plist2 = pnode_list[51:100]
+plist3 = pnode_list[101:150]
+plist4 = pnode_list[151:200]
+plist5 = pnode_list[201:250]
+plist6 = pnode_list[251:300]
+plist7 = pnode_list[301:350]
+plist8 = pnode_list[351:400]
+plist9 = pnode_list[401:450]
+plist10 = pnode_list[451:500]
+plist11 = pnode_list[501:550]
+plist12 = pnode_list[551:600]
+plist13 = pnode_list[600:]
 
-data = {"startDate": "2011-04-01", "endDate": "2014-04-02", "pnodeList": [5021072]}
+
+data = {"startDate": "2011-01-01", "endDate": "2014-04-08", "pnodeList": plist5}
 data = json.dumps(data)
 
 url = 'https://dataminer.pjm.com/dataminer/rest/public/api/markets/realtime/lmp/daily'
@@ -28,40 +39,7 @@ print(response.status_code)
 result_json = response.json()
 print("")
 
-# TODO: implement daylight savings logic
-# Mar: UTC5 - UCT3
-# Mar - Nov: UTC4 = UTC3
-# Nov: UTC4 - UTC4A
-# Nov - Mar: UTC5 - UTC4
-
 # TODO: create a separate script the puts together the pNode list, and calls this script to call API
-
-UTC_to_PJM = {
-    '04': 'H1',
-    '05': 'H2',
-    '06': 'H3',
-    '07': 'H4',
-    '08': 'H5',
-    '09': 'H6',
-    '10': 'H7',
-    '11': 'H8',
-    '12': 'H9',
-    '13': 'H10',
-    '14': 'H11',
-    '15': 'H12',
-    '16': 'H13',
-    '17': 'H14',
-    '18': 'H15',
-    '19': 'H16',
-    '20': 'H17',
-    '21': 'H18',
-    '22': 'H19',
-    '23': 'H20',
-    '00': 'H21',
-    '01': 'H22',
-    '02': 'H23',
-    '03': 'H24',
-}
 
 
 # Create a table with same headers as the CSV export from the GUI-based DataMiner
@@ -79,19 +57,27 @@ with sqlite3.connect("pjm_lmp.db") as connection:
                         H21 REAL, H22 REAL, H23 REAL, H24 REAL);
     """)
 
+    bulk_data = []
     json_transform = {}
 
     for record in result_json:
+
         if record['priceType'] == 'TotalLMP':
-            json_transform['publishDate'] = record['publishDate'][:10]
+            json_transform['publishDate'] = date_helpers.UTC_to_date_string(record['publishDate'])
             json_transform['pnodeId'] = record['pnodeId']
             json_transform['priceType'] = record['priceType']
             json_transform['versionNum'] = record['versionNum']
 
             for price in record['prices']:
-                new_hour = UTC_to_PJM[price['utchour'][11:13]]
-                json_transform[new_hour] = price['price']
-            table_data = (json_transform['publishDate'], json_transform['versionNum'], json_transform['pnodeId'],
+                new_hour = date_helpers.UTC_to_local_hour(price['utchour'])
+                json_transform['H{}'.format(new_hour)] = price['price']
+
+            if 'H3' in json_transform:
+                pass
+            else:
+                json_transform['H3'] = 0
+
+            row_data = (json_transform['publishDate'], json_transform['versionNum'], json_transform['pnodeId'],
                           json_transform['priceType'],
                           json_transform['H1'],
                           json_transform['H2'],
@@ -118,18 +104,20 @@ with sqlite3.connect("pjm_lmp.db") as connection:
                           json_transform['H23'],
                           json_transform['H24'])
 
-            c.execute("""INSERT INTO LMP (PublishDate, Version, PnodeID, PricingType,
-                                            H1, H2, H3, H4,
-                                            H5, H6, H7, H8,
-                                            H9, H10, H11, H12,
-                                            H13, H14, H15, H16,
-                                            H17, H18, H19, H20,
-                                            H21, H22, H23, H24)
+            bulk_data.append(row_data)
 
-                                            VALUES(?, ?, ?, ?,
-                                                    ?, ?, ?, ?,
-                                                    ?, ?, ?, ?,
-                                                    ?, ?, ?, ?,
-                                                    ?, ?, ?, ?,
-                                                    ?, ?, ?, ?,
-                                                    ?, ?, ?, ?)""", table_data)
+    c.executemany("""INSERT INTO LMP (PublishDate, Version, PnodeID, PricingType,
+                                    H1, H2, H3, H4,
+                                    H5, H6, H7, H8,
+                                    H9, H10, H11, H12,
+                                    H13, H14, H15, H16,
+                                    H17, H18, H19, H20,
+                                    H21, H22, H23, H24)
+
+                                    VALUES(?, ?, ?, ?,
+                                            ?, ?, ?, ?,
+                                            ?, ?, ?, ?,
+                                            ?, ?, ?, ?,
+                                            ?, ?, ?, ?,
+                                            ?, ?, ?, ?,
+                                            ?, ?, ?, ?)""", bulk_data)
